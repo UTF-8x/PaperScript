@@ -1,0 +1,6 @@
+projectName: "Example"
+projectVersion: "v1.0.0"
+scriptFolderPath: "out"
+scriptOutputPath: "sco"
+papyrusFlagsPath: "TESV_Flags.flg"
+papyrusCompilerPath: ""

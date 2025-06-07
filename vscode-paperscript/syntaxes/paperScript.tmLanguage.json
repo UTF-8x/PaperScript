@@ -1,0 +1,76 @@
+{
+  "name": "PaperScript",
+  "scopeName": "source.paperscript",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#keywords" },
+    { "include": "#types" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#identifiers" },
+    { "include": "#booleans" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.paperscript",
+          "match": "//.*$"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.paperscript",
+          "match": "\\b(script|def|auto|property|if|else|while|range|return|in|new|private|public|event)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "storage.type.paperscript",
+          "match": "\\b(Int|Float|Bool|String|Actor|Keyword|Spell|ObjectReference)\\b"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.paperscript",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.paperscript",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        { "name": "constant.numeric.float.paperscript", "match": "\\b\\d+\\.\\d+\\b" },
+        { "name": "constant.numeric.integer.paperscript", "match": "\\b\\d+\\b" }
+      ]
+    },
+    "identifiers": {
+      "patterns": [
+        {
+          "name": "variable.other.paperscript",
+          "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b"
+        }
+      ]
+    },
+    "booleans": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.paperscript",
+          "match": "\\b(true|false)\\b"
+        }
+      ]
+    }
+  }
+}
