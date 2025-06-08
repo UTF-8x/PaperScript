@@ -5,7 +5,7 @@ namespace PaperScript.Cli.Util;
 public class GameFinder
 {
 #if WINDOWS
-    public static string? GetSkyrimSEInstallDir() {
+    public static string? GetSkyrimSeInstallDir() {
         var registryPath = @"Computer\HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Bethesda Softworks\Skyrim Special Edition";
 
         using var key = Registry.LocalMachine.OpenSubKey(registryPath);
