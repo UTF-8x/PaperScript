@@ -20,8 +20,18 @@ app.Configure(config =>
     config.ValidateExamples();
     #endif
     
-    config.AddCommand<BuildCommand>("build");
-    config.AddCommand<TranspileCommand>("transpile");
+    config.AddCommand<BuildCommand>("build")
+        .WithDescription("build a project (requires a project.yaml)");
+    
+    config.AddCommand<TranspileCommand>("transpile")
+        .WithDescription("transpiles a single file");
+    
+    config.AddCommand<InitCommand>("init")
+        .WithDescription("creates a new project.yaml");
+    
+    config.AddCommand<VersionCommand>("version")
+        .WithDescription("prints version information");
+    
 });
 
 app.Run(args);

@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0-alpha.1",
+  "assemblyVersion": "1.0.0.1",
+  "publicReleaseRefSpec": [
+    "^refs/heads/main$"
+  ],
+  "cloudBuild": {
+    "setVersionVariables": true
+  }
+}

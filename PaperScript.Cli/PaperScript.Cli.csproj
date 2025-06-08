@@ -13,11 +13,19 @@
 
   <ItemGroup>
     <PackageReference Include="Glob" Version="1.1.9" />
+    <PackageReference Include="Nerdbank.GitVersioning" Version="3.7.115">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Serilog" Version="4.3.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageReference Include="Spectre.Console" Version="0.50.0" />
     <PackageReference Include="Spectre.Console.Cli" Version="0.50.0" />
     <PackageReference Include="YamlDotNet" Version="16.3.0" />
   </ItemGroup>
+  
+  <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
+    <DefineConstants>WINDOWS</DefineConstants>
+  </PropertyGroup>
 
 </Project>
