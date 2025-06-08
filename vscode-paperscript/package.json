@@ -3,14 +3,18 @@
   "displayName": "PaperScript",
   "description": "Syntax highlighting for PaperScript",
   "version": "0.0.1",
-  "publisher": "BluCarbon Labs s.r.o.",
+  "publisher": "UTF-8x",
   "engines": {
     "vscode": "^1.70.0"
   },
   "categories": [
     "Programming Languages"
   ],
+  "repository": {
+    "url": "https://github.com/UTF-8x/PaperScript"
+  },
   "main": "./extension.js",
+  "activationEvents": [],
   "contributes": {
     "languages": [
       {
@@ -40,7 +44,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/vscode": "^1.100.0",
+    "@types/vscode": "^1.70.0",
     "vscode": "^1.1.37"
   }
 }
