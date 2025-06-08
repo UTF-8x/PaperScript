@@ -1,7 +1,4 @@
-// extension.js
-function activate() {
-  // no-op: this extension only contributes grammar
-}
+function activate() {}
 
 function deactivate() {}
 

@@ -15,4 +15,6 @@ public class ProjectManifest
     public string PapyrusCompilerPath { get; set; }
 
     public string SourceGlob { get; set; } = "**/*.pps";
+    
+    public Dictionary<string, string> GlobalDefines { get; set; }
 }

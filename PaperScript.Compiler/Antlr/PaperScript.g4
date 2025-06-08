@@ -10,11 +10,25 @@ options {
 using System.Collections.Generic;
 }
 
-// ---------- Top-Level Rules ----------
+file
+    : directive* includeDirective* scriptDecl
+    ;
 
-script: 'script' IDENTIFIER ':' IDENTIFIER '{' scriptBody '}' ;
+directive
+    : HASH_DEFINE IDENTIFIER STRING?
+    ;
 
-scriptBody: statement* ;
+includeDirective
+    : HASH_INCLUDE STRING?
+    ;
+
+scriptDecl
+    : 'script' IDENTIFIER ':' IDENTIFIER '{' scriptBody '}'
+    ;
+
+scriptBody
+    : statement* 
+    ;
 
 statement
     : autoProperty
@@ -22,8 +36,6 @@ statement
     | variableDecl
     | eventDecl
     ;
-
-// ---------- Declarations ----------
 
 autoProperty
     : 'auto' 'property' IDENTIFIER ':' type ( '=' expr )?
@@ -37,12 +49,17 @@ functionDecl
     : 'def' IDENTIFIER '(' paramList? ')' ( '->' type )? block
     ;
 
-paramList: param (',' param)* ;
-param: IDENTIFIER ':' type ( '=' expr )? ;
+paramList
+    : param (',' param)* 
+    ;
 
-// ---------- Blocks and Control Flow ----------
+param
+    : IDENTIFIER ':' type ( '=' expr )? 
+    ;
 
-block: '{' statement* stmtBody* '}' ;
+block
+    : '{' statement* stmtBody* '}' 
+    ;
 
 stmtBody
     : ifStmt
@@ -52,26 +69,53 @@ stmtBody
     | returnStmt
     | variableDecl
     | eventDecl
+    | conditionalBlock
+    ;
+    
+conditionalBlock 
+    : directiveStart stmtBody* directiveEnd 
     ;
 
-ifStmt: 'if' expr block ( 'else' block )? ;
-whileStmt: 'while' expr block ;
-rangeStmt: 'range' IDENTIFIER 'in' IDENTIFIER block ;
-returnStmt: 'return' expr ;
-exprStmt: expr ;
+directiveStart 
+    : HASH_IF IDENTIFIER 
+    ;
 
-// ---------- Expressions ----------
+directiveEnd
+    : HASH_ENDIF
+    ;
+
+ifStmt
+    : 'if' expr block ( 'else' block )? 
+    ;
+
+whileStmt
+    : 'while' expr block 
+    ;
+
+rangeStmt
+    : 'range' IDENTIFIER 'in' IDENTIFIER block 
+    ;
+
+returnStmt
+    : 'return' expr 
+    ;
+
+exprStmt
+    : expr 
+    ;
 
 expr
-    : 'new' type '[' expr ']'                         # newArrayExpr
-    | expr '[' expr ']'                 # indexExpr
-    | expr '=' expr # assignmentExpr
-    | <assoc=right> expr op=('*' | '/' ) expr     # MulDivExpr
-    | <assoc=right> expr op=('+' | '-' ) expr     # AddSubExpr
-    | <assoc=right> expr op=('==' | '!=' | '<' | '<=' | '>' | '>=' ) expr # CompareExpr
-    | functionCallExpr # FuncCall
-    | qualifiedNameExpr # QualName
-    | literalExpr # Lit
+    : 'new' type '[' expr ']'                   # newArrayExpr
+    | expr '[' expr ']'                         # indexExpr
+    | expr '=' expr                             # assignmentExpr
+    | <assoc=right> expr op=('*' | '/' ) expr   # MulDivExpr
+    | <assoc=right> expr op=('+' | '-' ) expr   # AddSubExpr
+    | <assoc=right> expr op=('==' | '!=' | '<' | '<=' | '>' | '>=' | '&&' | '||' ) expr # CompareExpr
+    | functionCallExpr                          # FuncCall
+    | qualifiedNameExpr                         # QualName
+    | literalExpr                               # Lit
+    | '(' expr ')'                              # parenExpr
+    | '!' expr                                  # unaryNotExpr
     ;
 
 literalExpr
@@ -97,29 +141,70 @@ literal
     | INT
     ;
 
+argList
+    : expr (',' expr)* 
+    ;
 
-argList: expr (',' expr)* ;
-qualifiedName: IDENTIFIER ('.' IDENTIFIER)* ;
+qualifiedName
+    : IDENTIFIER ('.' IDENTIFIER)* 
+    ;
 
-binaryOp: '==' | '!=' | '<' | '<=' | '>' | '>=' | '+' | '-' | '*' | '/' ;
+type
+    : IDENTIFIER arrayModifier? 
+    ;
 
-// ---------- Types & Modifiers ----------
+arrayModifier
+    : '[' ']' 
+    ;
 
-type: IDENTIFIER arrayModifier? ;
-arrayModifier: '[' ']' ;
-visibility: 'private' | 'public' ;
+visibility
+    : 'private' | 'public' 
+    ;
 
-// ---------- Terminals ----------
+BOOL
+    : 'true' | 'false' 
+    ;
 
-BOOL: 'true' | 'false' ;
-FLOAT: DIGIT+ '.' DIGIT* ;
-INT: DIGIT+ ;
-STRING: '"' (~["\\] | '\\' .)* '"' ;
-IDENTIFIER: [a-zA-Z_] [a-zA-Z0-9_]* ;
+FLOAT
+    : DIGIT+ '.' DIGIT* 
+    ;
 
-// ---------- Helpers ----------
+INT
+    : DIGIT+ 
+    ;
 
-fragment DIGIT: [0-9] ;
+STRING
+    : '"' (~["\\] | '\\' .)* '"' 
+    ;
 
-WS: [ \t\r\n]+ -> skip ;
-COMMENT: '//' ~[\r\n]* -> skip ;
+IDENTIFIER
+    : [a-zA-Z_] [a-zA-Z0-9_]* 
+    ;
+
+HASH_DEFINE
+    : '#define' 
+    ;
+    
+HASH_IF
+    : '#if'
+    ;
+
+HASH_ENDIF
+    : '#endif'
+    ;
+    
+HASH_INCLUDE
+    : '#include'
+    ;
+
+WS
+    : [ \t\r\n]+ -> skip 
+    ;
+
+COMMENT
+    : '//' ~[\r\n]* -> skip 
+    ;
+
+fragment DIGIT
+    : [0-9] 
+    ;

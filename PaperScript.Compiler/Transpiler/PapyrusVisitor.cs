@@ -1,5 +1,6 @@
 
 
+using System.Text;
 using PaperScript.Compiler.Antlr;
 
 namespace PaperScript.Compiler.Transpiler;
@@ -8,7 +9,35 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
 {
     private int _indentLevel = 0;
     
-    public override string VisitScript(PaperScriptParser.ScriptContext context)
+    public Dictionary<string, string> Directives { get; private init; } = new();
+
+    public override string VisitFile(PaperScriptParser.FileContext context)
+    {
+        foreach (var directive in context.directive())
+        {
+            var key = directive.IDENTIFIER().GetText();
+            var val = directive.STRING()?.GetText();
+            if (string.IsNullOrWhiteSpace(val)) val = "true";
+            Directives[key] = val;
+        }
+
+        var includeBuilder = new StringBuilder();
+        
+        foreach (var include in context.includeDirective())
+        {
+            var path = include.STRING().GetText().Replace("\"", "");
+
+            if (!File.Exists(path))
+                throw new ArgumentException($"in '#include \"{path}\"': file not found.");
+            
+            var content = File.ReadAllText(path);
+            includeBuilder.Append(content).Append("\n");
+        }
+        
+        return includeBuilder + Visit(context.scriptDecl());
+    }
+
+    public override string VisitScriptDecl(PaperScriptParser.ScriptDeclContext context)
     {
         var name = context.IDENTIFIER(0).GetText();
         var parent = context.IDENTIFIER(1).GetText();
@@ -22,6 +51,18 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
 
         return output;
     }
+
+    // public override string VisitScript(PaperScriptParser.ScriptContext context)
+    // {
+    //     foreach (var directive in context.directive())
+    //     {
+    //         var key = directive.IDENTIFIER().GetText();
+    //         var value = directive.DIRECTIVE_TEXT().GetText().Trim();
+    //         Directives[key] = value;
+    //     }
+    //     
+    //     
+    // }
 
     public override string VisitFunctionDecl(PaperScriptParser.FunctionDeclContext context)
     {
@@ -166,6 +207,7 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
 
     private string Indent(string code)
     {
+        if(_indentLevel < 0) _indentLevel = 0;
         var indent = new string(' ', _indentLevel * 4);
         return string.Join("\n", code.Split('\n').Select(line => indent + line));
     }
@@ -272,5 +314,23 @@ EndWhile");
         var body = Visit(context.block());
 
         return $"{header}\n{body}\nEndEvent";
+    }
+
+    public override string VisitUnaryNotExpr(PaperScriptParser.UnaryNotExprContext context)
+    {
+        return "!" + Visit(context.expr());
+    }
+
+    public override string VisitConditionalBlock(PaperScriptParser.ConditionalBlockContext context)
+    {
+        var condition = context.directiveStart().IDENTIFIER().GetText();
+
+        if (Directives.TryGetValue(condition, out var directiveVal) && directiveVal == "true")
+        {
+            var body = context.stmtBody().Select(Visit).Where(s => !string.IsNullOrWhiteSpace(s));
+            return string.Join("\n", body);
+        }
+
+        return string.Empty;
     }
 }

@@ -97,7 +97,7 @@ range actor in actors {
 
 This will transpile into a Papyrus while block like this:
 
-```
+```python
 Int actorsIndex = 0
 While actorsIndex < actors.Length
     Actor actor = actors[actorsIndex]

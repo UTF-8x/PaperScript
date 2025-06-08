@@ -1,0 +1,55 @@
+// OUTPUT_FILE_NAME is a special define that tells the transpiler what the final
+// papyrus file should be called. This is optional.
+#define OUTPUT_FILE_NAME "MyMod_OnEquip.psc"
+#define DEBUG
+
+script OnEquip : ObjectReference {
+    // Papyrus Auto Properties begin with "auto property" and then
+    // follow the usual variable format
+    auto property PlayerREF: Actor
+    
+    // Variables are defined in the format "name: Type"
+    auto property OnEquipMessage: Message
+    auto property OnUnequipMessage: Message
+
+    // Functions are declared with "def", an optional return type goes after
+    // a "->".
+    def NotifyEquip() -> void {
+        OnEquipMessage.Show()
+        GiveMultipleItems()
+    }
+
+    // Void function don't have to specify a return type.
+    def NotifyUnequip() {
+        OnUnequipMessage.Show()
+    }
+
+    // Events are declared like functions but don't have a return type.
+    // Note that arguments are also in the format "name: Type".
+    event OnEquip(actor: Actor) {
+        if actor == PlayerREF {
+            NotifyEquip()
+        }
+    }
+
+    event OnUnequip(actor: Actor) {
+        if actor == PlayerREF {
+            NotifyUnequip()
+        }
+    }
+
+    def GiveMultipleItems() {
+        // all variables must have an explicit type, type inference is not
+        // supported
+        itemIds: Int[] = new Int[2]
+        itemIds[0] = 123
+        itemIds[1] = 456
+
+        // range is a feature of PaperScript that acts as a "foreach" but gets
+        // transformed into a while loop in the Papyrus output because Papyrus
+        // does not have a foreach
+        range item in itemIds {
+            PlayerREF.AddItem(item, 1)
+        }
+    }
+}
