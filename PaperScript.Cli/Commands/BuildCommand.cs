@@ -96,9 +96,9 @@ public class BuildCommand : Command<BuildCommand.BuildCommandSettings>
                         ArgumentList =
                         {
                             outputPath,
-                            $"-i=\"{manifest.ScriptFolderPath}\"",
-                            $"-o=\"{manifest.ScriptOutputPath}\"",
-                            $"-f=\"{manifest.PapyrusFlagsPath}\"",
+                            $"-i={manifest.ScriptFolderPath}",
+                            $"-o={manifest.ScriptOutputPath}",
+                            $"-f={manifest.PapyrusFlagsPath}",
                             "-q"
                         },
                         RedirectStandardError = true,
@@ -115,9 +115,8 @@ public class BuildCommand : Command<BuildCommand.BuildCommandSettings>
                 var output = compiler.StandardOutput.ReadToEnd();
                 var error = compiler.StandardError.ReadToEnd();
             
-                output.Split('\n').ToList().ForEach(line => Log.Debug("[Papyrus Compiler] {Line}", line));
-            
-
+                output.Split('\n').Where(l => !string.IsNullOrWhiteSpace(l)).ToList().ForEach(line => Log.Information("[Papyrus Compiler] {Line}", line));
+                
                 compiler.WaitForExit();
 
                 if (compiler.ExitCode != 0)

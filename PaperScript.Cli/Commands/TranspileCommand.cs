@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using PaperScript.Cli.Compiler;
 using PaperScript.Compiler.Transpiler;
 using Serilog;
@@ -15,6 +16,11 @@ public class TranspileCommand : Command<TranspileCommand.Settings>
         
         [CommandOption("-o|--output <OUTPUT_FILE>")]
         public string? OutputFile { get; set; }
+        
+        [CommandOption("-s|--stdout")]
+        [Description("Output to STDOUT instead of a file")]
+        [DefaultValue(false)]
+        public bool StdOut { get; set; }
     }
 
     public override int Execute(CommandContext context, Settings settings)
@@ -29,6 +35,19 @@ public class TranspileCommand : Command<TranspileCommand.Settings>
         {
             Log.Error("no such file {File}", settings.InputFile);
             return 1;
+        }
+
+        if (settings.StdOut)
+        {
+            Log.Debug("transpiling file {In}", settings.InputFile);
+            var xts = new PapyrusTranspiler([new SyntaxErrorListener()]);
+        
+            var xcode = File.ReadAllText(settings.InputFile);
+            var xresult = xts.Transpile(xcode);
+            
+            Log.Information(xresult.Code);
+            
+            return 0;
         }
 
         settings.OutputFile ??= Path.ChangeExtension(settings.InputFile, ".psc");

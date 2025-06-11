@@ -3,7 +3,7 @@
   "displayName": "PaperScript",
   "description": "Syntax highlighting for PaperScript",
   "version": "0.0.1",
-  "publisher": "UTF-8x",
+  "publisher": "UTF8x",
   "engines": {
     "vscode": "^1.70.0"
   },

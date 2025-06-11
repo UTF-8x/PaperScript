@@ -333,4 +333,67 @@ EndWhile");
 
         return string.Empty;
     }
+
+    private string _switchContextName = "";
+    private bool _isSwitchFirst = false;
+    
+    public override string VisitSwitchStmt(PaperScriptParser.SwitchStmtContext context)
+    {
+        var condition = context.expr().GetText();
+        _switchContextName = condition;
+        _isSwitchFirst = true;
+        var block = Visit(context.switchBlock());
+
+        return $"{block}\nEndIf";
+    }
+
+    public override string VisitSwitchBlock(PaperScriptParser.SwitchBlockContext context)
+    {
+        var builder = new StringBuilder();
+        
+        var cases = context.switchCase();
+        foreach (var @case in cases)
+        {
+            builder.Append(Visit(@case));
+        }
+
+        var @default = Visit(context.switchDefaultCase());
+        if(@default != null) builder.Append(@default);
+
+        return builder.ToString();
+    }
+    
+    public override string VisitSingleLineCase(PaperScriptParser.SingleLineCaseContext context)
+    {
+        var condition = Visit(context.expr(0));
+        var kywd = _isSwitchFirst ? "If" : "ElseIf";
+        if (_isSwitchFirst) _isSwitchFirst = false;
+        var body = Visit(context.expr(1));
+
+        return Indent($"{kywd} {_switchContextName} == {condition}\n    {body}\n");
+    }
+
+    public override string VisitMultiLineCase(PaperScriptParser.MultiLineCaseContext context)
+    {
+        var condition = Visit(context.expr());
+        var kywd = _isSwitchFirst ? "If" : "ElseIf";
+        if (_isSwitchFirst) _isSwitchFirst = false;
+        var body = Visit(context.block());
+
+        return Indent($"{kywd} {_switchContextName} == {condition}\n    {body}\n");
+    }
+
+    public override string VisitSingleLineDefault(PaperScriptParser.SingleLineDefaultContext context)
+    {
+        var body = Visit(context.expr());
+        
+        return Indent($"Else\n    {body}\n");
+    }
+
+    public override string VisitMultiLineDefault(PaperScriptParser.MultiLineDefaultContext context)
+    {
+        var body = Visit(context.block());
+        
+        return Indent($"Else\n    {body}\n");
+    }
 }

@@ -27,7 +27,7 @@
       "patterns": [
         {
           "name": "keyword.control.paperscript",
-          "match": "\\b(script|def|auto|property|if|else|while|range|return|in|new|private|public|event)\\b"
+          "match": "\\b(script|def|auto|property|if|else|while|range|return|in|new|private|public|event|switch|case|default)\\b"
         },
         {
           "name": "meta.directive.paperscript",

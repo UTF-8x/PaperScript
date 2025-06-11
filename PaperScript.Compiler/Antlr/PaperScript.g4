@@ -62,9 +62,10 @@ block
     ;
 
 stmtBody
-    : ifStmt
-    | whileStmt
+    : whileStmt
     | rangeStmt
+    | switchStmt
+    | ifStmt
     | exprStmt
     | returnStmt
     | variableDecl
@@ -86,6 +87,24 @@ directiveEnd
 
 ifStmt
     : 'if' expr block ( 'else' block )? 
+    ;
+
+switchStmt
+    : 'switch' expr switchBlock
+    ;
+
+switchBlock
+    : '{' switchCase* switchDefaultCase? '}'
+    ;
+    
+switchCase
+    : 'case' expr '=>' expr ';' # singleLineCase
+    | 'case' expr '=>' block # multiLineCase
+    ;
+    
+switchDefaultCase
+    : 'default' '=>' expr ';' # singleLineDefault
+    | 'default' '=>' block # multiLineDefault
     ;
 
 whileStmt
