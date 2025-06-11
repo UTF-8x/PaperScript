@@ -1,5 +1,6 @@
 
 
+using System.Data;
 using System.Text;
 using PaperScript.Compiler.Antlr;
 
@@ -438,17 +439,33 @@ EndWhile");
 
     public override string VisitPropertyBlock(PaperScriptParser.PropertyBlockContext context)
     {
-        var getter = context.getterBlock();
-        var setter = context.setterBlock();
+        var getter = Visit(context.getterBlock());
+        var setter = Visit(context.setterBlock());
+        
+        return $"{getter}\n{setter}";
     }
 
     public override string VisitGetterBlock(PaperScriptParser.GetterBlockContext context)
     {
-        return base.VisitGetterBlock(context);
+        var property = context.Parent.Parent as PaperScriptParser.PropertyContext;
+        if (property is null)
+            throw new SyntaxErrorException("could not parse getter");
+        
+        var type = property.type()?.GetText();
+        var body = Visit(context.block());
+
+        return $"{type} Function Get()\n{body}\nEndFunction";
     }
 
     public override string VisitSetterBlock(PaperScriptParser.SetterBlockContext context)
     {
-        return base.VisitSetterBlock(context);
+        var property = context.Parent.Parent as PaperScriptParser.PropertyContext;
+        if (property is null)
+            throw new SyntaxErrorException("could not parse setter");
+        
+        var type = property.type()?.GetText();
+        var body = Visit(context.block());
+
+        return $"Function Set({type} value)\n{body}\nEndFunction";
     }
 }
