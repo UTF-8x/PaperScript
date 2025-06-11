@@ -31,7 +31,8 @@ app.Configure(config =>
     
     config.AddCommand<VersionCommand>("version")
         .WithDescription("prints version information");
-    
+
+    config.AddCommand<DecompileCommand>("decompile");
 });
 
 app.Run(args);
