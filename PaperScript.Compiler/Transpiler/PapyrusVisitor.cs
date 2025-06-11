@@ -190,9 +190,23 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
             output += Visit(context.block(1)) + "\n";
         }
 
+        foreach (var elif in context.elseIfBlock())
+        {
+            var parsed = Visit(elif);
+            output += Indent($"\n{parsed}\n");
+        }
+
         output += Indent("EndIf");
         _indentLevel--;
         return output;
+    }
+
+    public override string VisitElseIfBlock(PaperScriptParser.ElseIfBlockContext context)
+    {
+        var condition = Visit(context.expr());
+        var body = VisitBlock(context.block());
+        
+        return $"ElseIf {condition}\n{body}";
     }
 
     public override string VisitCompareExpr(PaperScriptParser.CompareExprContext context)

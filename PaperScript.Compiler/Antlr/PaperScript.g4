@@ -120,7 +120,11 @@ directiveEnd
     ;
 
 ifStmt
-    : 'if' expr block ( 'else' block )? 
+    : 'if' expr block elseIfBlock* ( 'else' block )? 
+    ;
+
+elseIfBlock
+    : 'elseif' expr block
     ;
 
 switchStmt
@@ -235,11 +239,15 @@ BOOL
     ;
 
 FLOAT
-    : DIGIT+ '.' DIGIT* 
+    : MINUS? DIGIT+ '.' DIGIT* 
     ;
 
 INT
-    : DIGIT+ 
+    : MINUS? DIGIT+ 
+    ;
+
+MINUS
+    : '-'
     ;
 
 STRING
