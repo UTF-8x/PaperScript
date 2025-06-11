@@ -42,8 +42,13 @@ scriptBody
     : statement* stateDecl* 
     ;
 
+importStatement
+    : 'import' STRING
+    ;
+
 statement
     : autoProperty
+    | importStatement
     | property
     | functionDecl
     | variableDecl

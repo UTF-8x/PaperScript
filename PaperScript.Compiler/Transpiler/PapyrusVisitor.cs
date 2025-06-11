@@ -492,4 +492,12 @@ EndWhile");
         var lines = context.statement().Select(Visit).ToArray();
         return string.Join("\n", lines);
     }
+
+    public override string VisitImportStatement(PaperScriptParser.ImportStatementContext context)
+    {
+        var what = context.STRING()?.GetText();
+        if(what is null) throw new SyntaxErrorException("could not parse import");
+
+        return $"Import {what.Replace("\"", "")}";
+    }
 }
