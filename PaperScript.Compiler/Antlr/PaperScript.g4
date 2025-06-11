@@ -274,6 +274,15 @@ COMMENT
     : '//' ~[\r\n]* -> skip 
     ;
 
+MULTILINE_COMMENT
+    : '/*' .*? '*/' -> skip
+    ;
+
+DOC_COMMENT
+    : '/**' .*? '*/' -> skip
+    ;
+   
+
 fragment DIGIT
     : [0-9] 
     ;
