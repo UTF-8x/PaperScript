@@ -41,8 +41,20 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
     {
         var name = context.IDENTIFIER(0).GetText();
         var parent = context.IDENTIFIER(1).GetText();
+        var flags = context.scriptFlag().Select(x => x.GetText()).ToArray();
 
-        var output = $"ScriptName {name} extends {parent}\n\n";
+        var suffix = "";
+        foreach (var flag in flags)
+        {
+            suffix += flag switch
+            {
+                "hidden" => "Hidden",
+                "conditional" => "Conditional",
+                _ => ""
+            };
+        }
+
+        var output = $"ScriptName {name} extends {parent} {suffix}\n\n";
         
         foreach (var member in context.scriptBody().children)
         {
@@ -52,22 +64,12 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
         return output;
     }
 
-    // public override string VisitScript(PaperScriptParser.ScriptContext context)
-    // {
-    //     foreach (var directive in context.directive())
-    //     {
-    //         var key = directive.IDENTIFIER().GetText();
-    //         var value = directive.DIRECTIVE_TEXT().GetText().Trim();
-    //         Directives[key] = value;
-    //     }
-    //     
-    //     
-    // }
-
     public override string VisitFunctionDecl(PaperScriptParser.FunctionDeclContext context)
     {
         var functionName = context.IDENTIFIER().GetText();
 
+        var flags = context.functionFlag().Select(x => x.GetText()).ToArray();
+        
         var parameters = context.paramList()?.param();
         var paramStrings = new List<string>();
 
@@ -98,7 +100,18 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
 
         var body = Visit(context.block());
 
-        return $"{header}\n{body}\nEndFunction\n";
+        var suffix = "";
+        foreach (var flag in flags)
+        {
+            suffix += flag switch
+            {
+                "native" => "Native ",
+                "global" => "Global ",
+                _ => ""
+            };
+        }
+
+        return $"{header} {suffix}\n{body}\nEndFunction\n";
     }
 
     public override string VisitBlock(PaperScriptParser.BlockContext context)
@@ -151,11 +164,13 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
 
     public override string VisitVariableDecl(PaperScriptParser.VariableDeclContext context)
     {
+        var flag = context.variableFlag()?.GetText();
+        if (flag is not null && flag == "conditional") flag = "Conditional";
         var name = context.IDENTIFIER().GetText();
         var type = context.type().GetText();
         var expr = context.expr() != null ? $" = {Visit(context.expr())}" : "";
 
-        return $"{type} {name}{expr}";
+        return $"{type} {name}{expr} {flag}";
     }
 
     public override string VisitIfStmt(PaperScriptParser.IfStmtContext context)
@@ -221,16 +236,30 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
     {
         var name = context.IDENTIFIER().GetText();
         var type = context.type().GetText();
+        var modifier = context.propertyModifier()?.GetText();
         var expr = context.expr();
 
+        var suffix = "Auto";
+
+        if (modifier is not null)
+        {
+            suffix = modifier switch
+            {
+                "readonly" => "AutoReadOnly",
+                "conditional" => "Auto Conditional",
+                "hidden" => "Auto Hidden",
+                _ => "Auto"
+            };
+        }
+        
         if (expr != null)
         {
             var val = Visit(expr);
-            return $"{type} Property {name} = {val} Auto";
+            return $"{type} Property {name} = {val} {suffix}";
         }
         else
         {
-            return $"{type} Property {name} Auto";
+            return $"{type} Property {name} {suffix}";
         }
     }
 
@@ -395,5 +424,31 @@ EndWhile");
         var body = Visit(context.block());
         
         return Indent($"Else\n    {body}\n");
+    }
+
+    public override string VisitProperty(PaperScriptParser.PropertyContext context)
+    {
+        var flags = context.propertyModifier()?.GetText();
+        var name = context.IDENTIFIER().GetText();
+        var type = context.type().GetText();
+        var body = Visit(context.propertyBlock());
+        
+        return $"{type} Property {name}\n{body}\nEndProperty";
+    }
+
+    public override string VisitPropertyBlock(PaperScriptParser.PropertyBlockContext context)
+    {
+        var getter = context.getterBlock();
+        var setter = context.setterBlock();
+    }
+
+    public override string VisitGetterBlock(PaperScriptParser.GetterBlockContext context)
+    {
+        return base.VisitGetterBlock(context);
+    }
+
+    public override string VisitSetterBlock(PaperScriptParser.SetterBlockContext context)
+    {
+        return base.VisitSetterBlock(context);
     }
 }

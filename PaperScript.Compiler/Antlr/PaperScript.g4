@@ -23,7 +23,7 @@ includeDirective
     ;
 
 scriptDecl
-    : 'script' IDENTIFIER ':' IDENTIFIER '{' scriptBody '}'
+    : scriptFlag* 'script' IDENTIFIER ':' IDENTIFIER '{' scriptBody '}'
     ;
 
 scriptBody
@@ -32,21 +32,38 @@ scriptBody
 
 statement
     : autoProperty
+    | property
     | functionDecl
     | variableDecl
     | eventDecl
     ;
 
 autoProperty
-    : 'auto' 'property' IDENTIFIER ':' type ( '=' expr )?
+    : 'auto' propertyModifier? 'property' IDENTIFIER ':' type ( '=' expr )?
+    ;
+
+property
+    : propertyModifier? 'property' IDENTIFIER ':' type propertyBlock
+    ;
+
+propertyBlock
+    : '{' getterBlock? setterBlock? '}'
+    ;
+    
+getterBlock
+    : 'get' block
+    ;
+    
+setterBlock
+    : 'set' block
     ;
 
 variableDecl
-    : visibility? IDENTIFIER ':' type ( '=' expr )?
+    : variableFlag? IDENTIFIER ':' type ( '=' expr )?
     ;
 
 functionDecl
-    : 'def' IDENTIFIER '(' paramList? ')' ( '->' type )? block
+    : functionFlag* 'def' IDENTIFIER '(' paramList? ')' ( '->' type )? block
     ;
 
 paramList
@@ -176,8 +193,24 @@ arrayModifier
     : '[' ']' 
     ;
 
-visibility
-    : 'private' | 'public' 
+variableFlag
+    : 'conditional' 
+    ;
+
+propertyModifier
+    : 'readonly' 
+    | 'conditional'
+    | 'hidden'
+    ;
+
+scriptFlag
+    : 'hidden'
+    | 'conditional'
+    ;
+
+functionFlag
+    : 'native'
+    | 'global'
     ;
 
 BOOL
