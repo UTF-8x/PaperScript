@@ -468,4 +468,28 @@ EndWhile");
 
         return $"Function Set({type} value)\n{body}\nEndFunction";
     }
+
+    public override string VisitStateDecl(PaperScriptParser.StateDeclContext context)
+    {
+        var flag = context.stateFlag()?.GetText();
+        var name = context.IDENTIFIER().GetText();
+        var body = Visit(context.stateBlock());
+
+        if (flag is not null)
+        {
+            flag = flag switch
+            {
+                "auto" => "Auto",
+                _ => ""
+            };
+        }
+        
+        return $"{flag} State {name}\n{body}\nEndState";
+    }
+
+    public override string VisitStateBlock(PaperScriptParser.StateBlockContext context)
+    {
+        var lines = context.statement().Select(Visit).ToArray();
+        return string.Join("\n", lines);
+    }
 }

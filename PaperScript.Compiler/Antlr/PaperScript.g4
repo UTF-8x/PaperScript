@@ -25,9 +25,21 @@ includeDirective
 scriptDecl
     : scriptFlag* 'script' IDENTIFIER ':' IDENTIFIER '{' scriptBody '}'
     ;
+    
+stateDecl
+    : stateFlag? 'state' IDENTIFIER stateBlock
+    ;
+
+stateBlock
+    : '{' statement* '}'
+    ;
+    
+stateFlag
+    : 'auto'
+    ;
 
 scriptBody
-    : statement* 
+    : statement* stateDecl* 
     ;
 
 statement
