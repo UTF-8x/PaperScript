@@ -514,4 +514,12 @@ EndWhile");
 
         return $"Import {what.Replace("\"", "")}";
     }
+
+    public override string VisitCastExpr(PaperScriptParser.CastExprContext context)
+    {
+        var lhs = Visit(context.expr());
+        var type = context.type()?.GetText();
+
+        return $"{lhs} As {type}";
+    }
 }

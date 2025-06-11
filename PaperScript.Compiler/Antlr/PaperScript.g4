@@ -162,7 +162,8 @@ exprStmt
     ;
 
 expr
-    : 'new' type '[' expr ']'                   # newArrayExpr
+    : expr 'as' type                            # castExpr
+    | 'new' type '[' expr ']'                   # newArrayExpr
     | expr '[' expr ']'                         # indexExpr
     | expr '=' expr                             # assignmentExpr
     | <assoc=right> expr op=('*' | '/' ) expr   # MulDivExpr
