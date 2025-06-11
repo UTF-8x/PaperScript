@@ -105,7 +105,16 @@ stmtBody
     | variableDecl
     | eventDecl
     | conditionalBlock
+    | incrementDecrement
     ;
+
+incrementDecrement
+    : IDENTIFIER INCREMENT
+    | IDENTIFIER DECREMENT
+    ;
+ 
+INCREMENT : '++' ;
+DECREMENT : '--' ;
     
 conditionalBlock 
     : directiveStart stmtBody* directiveEnd 

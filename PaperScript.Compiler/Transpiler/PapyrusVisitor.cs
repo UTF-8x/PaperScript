@@ -522,4 +522,19 @@ EndWhile");
 
         return $"{lhs} As {type}";
     }
+
+    public override string VisitIncrementDecrement(PaperScriptParser.IncrementDecrementContext context)
+    {
+        if (context.INCREMENT() is null && context.DECREMENT() is null)
+            throw new SyntaxErrorException("could not parse increment or decrement");
+        
+        var isIncrement = context.INCREMENT() is not null;
+        
+        var name = context.IDENTIFIER()?.GetText();
+
+        if (isIncrement)
+            return $"{name} += 1";
+        else
+            return $"{name} -= 1";
+    }
 }
