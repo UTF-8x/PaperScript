@@ -1,6 +1,6 @@
 {
-  "version": "1.0.1-alpha.1",
-  "assemblyVersion": "1.0.1.1",
+  "version": "1.0.4-alpha.1",
+  "assemblyVersion": "1.0.4.1",
   "publicReleaseRefSpec": [
     "^refs/heads/main$"
   ],

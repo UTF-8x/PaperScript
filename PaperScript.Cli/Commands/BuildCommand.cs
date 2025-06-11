@@ -79,7 +79,7 @@ public class BuildCommand : Command<BuildCommand.BuildCommandSettings>
             
             Log.Debug("transpiling {In}", file);
             var code = File.ReadAllText(file);
-            var result = tp.Transpile(code);
+            var result = tp.Transpile(code, manifest.Game);
             var outputPath = Path.Combine(manifest.ScriptFolderPath, Path.ChangeExtension(Path.GetFileName(file), ".psc"));
             File.WriteAllText(outputPath, result.Code);
             Log.Debug("transpiled file {In} -> {Out}", file, outputPath);

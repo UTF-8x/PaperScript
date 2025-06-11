@@ -21,6 +21,11 @@ public class TranspileCommand : Command<TranspileCommand.Settings>
         [Description("Output to STDOUT instead of a file")]
         [DefaultValue(false)]
         public bool StdOut { get; set; }
+        
+        [CommandOption("-g|--game")]
+        [Description("select which game this script is for (SkyrimSE, FO4, Starfield)")]
+        [DefaultValue("SkyrimSE")]
+        public string Game { get; set; }
     }
 
     public override int Execute(CommandContext context, Settings settings)
@@ -43,7 +48,7 @@ public class TranspileCommand : Command<TranspileCommand.Settings>
             var xts = new PapyrusTranspiler([new SyntaxErrorListener()]);
         
             var xcode = File.ReadAllText(settings.InputFile);
-            var xresult = xts.Transpile(xcode);
+            var xresult = xts.Transpile(xcode, settings.Game);
             
             Log.Information(xresult.Code);
             
@@ -68,7 +73,7 @@ public class TranspileCommand : Command<TranspileCommand.Settings>
 
         try
         {
-            var result = ts.Transpile(code);
+            var result = ts.Transpile(code, settings.Game);
 
             if (result.Directives.TryGetValue("OutputFileName", out var outFileDirective))
             {

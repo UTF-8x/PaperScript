@@ -17,4 +17,6 @@ public class ProjectManifest
     public string SourceGlob { get; set; } = "**/*.pps";
     
     public Dictionary<string, string> GlobalDefines { get; set; }
+
+    public string Game { get; set; } = "SkyrimSE";
 }

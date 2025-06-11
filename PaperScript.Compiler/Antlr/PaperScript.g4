@@ -37,9 +37,37 @@ stateBlock
 stateFlag
     : 'auto'
     ;
+    
+groupDecl
+    : groupFlag* 'group' IDENTIFIER groupBlock
+    ;
+
+groupBlock
+    : '{' groupStatement* '}'
+    ;
+
+groupFlag
+    : 'collapsedOnRef'
+    | 'collapsedOnBase'
+    | 'collapsed'
+    ;
+    
+structDecl
+    : 'struct' IDENTIFIER structBlock
+    ;
+
+structBlock
+    : '{' variableDecl* '}'
+    ;
+
+groupStatement
+    : variableDecl
+    | property
+    | autoProperty
+    ;
 
 scriptBody
-    : statement* stateDecl* 
+    : statement* stateDecl*
     ;
 
 importStatement
@@ -52,11 +80,22 @@ statement
     | property
     | functionDecl
     | variableDecl
+    | inferredVariableDecl
     | eventDecl
+    | groupDecl
+    | structDecl
     ;
 
 autoProperty
-    : 'auto' propertyModifier? 'property' IDENTIFIER ':' type ( '=' expr )?
+    : mandatoryModifier? constModifier? 'auto' propertyModifier? 'property' IDENTIFIER ':' type ( '=' expr )?
+    ;
+
+constModifier
+    : 'const'
+    ;
+
+mandatoryModifier
+    : 'mandatory'
     ;
 
 property
@@ -76,7 +115,11 @@ setterBlock
     ;
 
 variableDecl
-    : variableFlag? IDENTIFIER ':' type ( '=' expr )?
+    : constModifier? variableFlag? IDENTIFIER ':' type ( '=' expr )?
+    ;
+
+inferredVariableDecl
+    : constModifier? variableFlag? 'var' IDENTIFIER ( '=' expr )?
     ;
 
 functionDecl
@@ -172,6 +215,7 @@ exprStmt
 
 expr
     : expr 'as' type                            # castExpr
+    | expr 'is' expr                            # isExpr
     | 'new' type '[' expr ']'                   # newArrayExpr
     | expr '[' expr ']'                         # indexExpr
     | expr '=' expr                             # assignmentExpr
@@ -237,6 +281,10 @@ propertyModifier
 scriptFlag
     : 'hidden'
     | 'conditional'
+    | 'debug'
+    | 'beta'
+    | 'const'
+    | 'native'
     ;
 
 functionFlag
@@ -265,7 +313,7 @@ STRING
     ;
 
 IDENTIFIER
-    : [a-zA-Z_] [a-zA-Z0-9_]* 
+    : [a-zA-Z_] [a-zA-Z0-9_]* ('::' [a-zA-Z_][a-zA-Z0-9_]*)*
     ;
 
 HASH_DEFINE

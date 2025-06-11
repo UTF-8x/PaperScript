@@ -12,7 +12,7 @@ public class PapyrusTranspiler
         _errorListeners = errorListeners;
     }
 
-    public TranspilerResult Transpile(string code)
+    public TranspilerResult Transpile(string code, string game)
     {
         var inputStream = new AntlrInputStream(code);
         var lexer = new PaperScriptLexer(inputStream);
@@ -31,7 +31,7 @@ public class PapyrusTranspiler
         
         var tree = parser.file();
 
-        var visitor = new PapyrusVisitor();
+        var visitor = new PapyrusVisitor(game);
         var outCode = visitor.Visit(tree);
 
         if (visitor.Directives.Count > 0)

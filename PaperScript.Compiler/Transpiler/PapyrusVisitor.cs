@@ -2,7 +2,9 @@
 
 using System.Data;
 using System.Text;
+using Antlr4.Runtime.Tree;
 using PaperScript.Compiler.Antlr;
+using Serilog;
 
 namespace PaperScript.Compiler.Transpiler;
 
@@ -12,11 +14,28 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
     
     public Dictionary<string, string> Directives { get; private init; } = new();
 
+    private readonly List<string> _allowedGames = ["SkyrimSE", "FO4"];
+
+    private readonly Game _mode;
+
+    public PapyrusVisitor(string game)
+    {
+        if (!_allowedGames.Contains(game))
+            throw new ArgumentException($"unknown game '{game}'");
+
+        _mode = game switch
+        {
+            "SkyrimSE" => Game.SkyrimSE,
+            "FO4" => Game.FO4,
+            _ => throw new ArgumentException($"unknown game '{game}'")
+        };
+    }
+
     public override string VisitFile(PaperScriptParser.FileContext context)
     {
         foreach (var directive in context.directive())
         {
-            var key = directive.IDENTIFIER().GetText();
+            var key = UpdateIdentifierNamespace(directive.IDENTIFIER());
             var val = directive.STRING()?.GetText();
             if (string.IsNullOrWhiteSpace(val)) val = "true";
             Directives[key] = val;
@@ -40,34 +59,52 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
 
     public override string VisitScriptDecl(PaperScriptParser.ScriptDeclContext context)
     {
-        var name = context.IDENTIFIER(0).GetText();
-        var parent = context.IDENTIFIER(1).GetText();
+        List<string> onlyFo4Flags = ["beta", "debug", "const", "native"];
+        
+        var name = UpdateIdentifierNamespace(context.IDENTIFIER(0));
+        var parent = UpdateIdentifierNamespace(context.IDENTIFIER(1));
         var flags = context.scriptFlag().Select(x => x.GetText()).ToArray();
 
-        var suffix = "";
+        var suffixes = new List<string>();
+        
         foreach (var flag in flags)
         {
-            suffix += flag switch
+            if (_mode != Game.FO4 && (onlyFo4Flags.Contains(flag)))
+                throw new SyntaxErrorException($"the {flag} flag is only supported in FO4");
+            
+            suffixes.Add(flag switch
             {
                 "hidden" => "Hidden",
                 "conditional" => "Conditional",
+                "beta" => "BetaOnly",
+                "debug" => "DebugOnly",
+                "const" => "Const",
+                "native" => "Native",
                 _ => ""
-            };
+            });
         }
 
-        var output = $"ScriptName {name} extends {parent} {suffix}\n\n";
-        
-        foreach (var member in context.scriptBody().children)
+        var output = $"ScriptName {name} extends {parent} {string.Join(" ", suffixes)}\n\n";
+
+        if (context.scriptBody() is null || context.scriptBody().children is null ||
+            context.scriptBody().children.Count == 0)
         {
-            output += Visit(member) + "\n";
+            Log.Warning("the script body is empty!");
         }
-
+        else
+        {
+            foreach (var member in context.scriptBody().children)
+            {
+                output += Visit(member) + "\n";
+            }    
+        }
+        
         return output;
     }
 
     public override string VisitFunctionDecl(PaperScriptParser.FunctionDeclContext context)
     {
-        var functionName = context.IDENTIFIER().GetText();
+        var functionName = UpdateIdentifierNamespace(context.IDENTIFIER());
 
         var flags = context.functionFlag().Select(x => x.GetText()).ToArray();
         
@@ -79,7 +116,7 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
             foreach (var param in parameters)
             {
                 var paramType = param.type().GetText();
-                var paramName = param.IDENTIFIER().GetText();
+                var paramName = UpdateIdentifierNamespace(param.IDENTIFIER());
                 var paramDefault = param.expr()?.GetText();
 
                 if (paramDefault != null)
@@ -93,7 +130,7 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
             }
         }
         
-        var returnType = context.type()?.IDENTIFIER().GetText();
+        var returnType = UpdateIdentifierNamespace(context.type()?.IDENTIFIER());
         if (returnType == "void") returnType = null;
         var header = string.IsNullOrEmpty(returnType)
             ? $"\nFunction {functionName}({string.Join(", ", paramStrings)})"
@@ -143,7 +180,7 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
 
     public override string VisitQualifiedName(PaperScriptParser.QualifiedNameContext context)
     {
-        var parts = context.IDENTIFIER().Select(id => id.GetText());
+        var parts = context.IDENTIFIER().Select(id => UpdateIdentifierNamespace(id));
         return string.Join(".", parts);
     }
 
@@ -165,13 +202,42 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
 
     public override string VisitVariableDecl(PaperScriptParser.VariableDeclContext context)
     {
+        var isConst = context.constModifier()?.GetText();
+        if (isConst is not null && isConst == "const" && _mode != Game.FO4)
+            throw new SyntaxErrorException("const variables are only supported in FO4");
+
+        isConst ??= "";
+        if (isConst == "const") isConst = "Const ";
+        
+        
         var flag = context.variableFlag()?.GetText();
         if (flag is not null && flag == "conditional") flag = "Conditional";
-        var name = context.IDENTIFIER().GetText();
+        var name = UpdateIdentifierNamespace(context.IDENTIFIER());
         var type = context.type().GetText();
         var expr = context.expr() != null ? $" = {Visit(context.expr())}" : "";
 
-        return $"{type} {name}{expr} {flag}";
+        return $"{type} {name}{expr} {isConst}{flag}";
+    }
+
+    public override string VisitInferredVariableDecl(PaperScriptParser.InferredVariableDeclContext context)
+    {
+        if(_mode != Game.FO4)
+            throw new SyntaxErrorException("the 'var' type is only supported in FO4");
+        
+        var isConst = context.constModifier()?.GetText();
+        if (isConst is not null && isConst == "const" && _mode != Game.FO4)
+            throw new SyntaxErrorException("const variables are only supported in FO4");
+
+        isConst ??= "";
+        if (isConst == "const") isConst = "Const ";
+        
+        
+        var flag = context.variableFlag()?.GetText();
+        if (flag is not null && flag == "conditional") flag = "Conditional";
+        var name = UpdateIdentifierNamespace(context.IDENTIFIER());
+        var expr = context.expr() != null ? $" = {Visit(context.expr())}" : "";
+
+        return $"Var {name}{expr} {isConst}{flag}";
     }
 
     public override string VisitIfStmt(PaperScriptParser.IfStmtContext context)
@@ -249,7 +315,15 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
 
     public override string VisitAutoProperty(PaperScriptParser.AutoPropertyContext context)
     {
-        var name = context.IDENTIFIER().GetText();
+        var isConst = context.constModifier()?.GetText();
+        if (isConst is not null && isConst == "const" && _mode != Game.FO4)
+            throw new SyntaxErrorException("const properties are only supported in FO4");
+
+        var isMandatory = context.mandatoryModifier()?.GetText();
+        if(isMandatory is not null && isMandatory == "mandatory" && _mode != Game.FO4)
+            throw new SyntaxErrorException("mandatory properties are only supported in FO4");
+
+        var name = UpdateIdentifierNamespace(context.IDENTIFIER());
         var type = context.type().GetText();
         var modifier = context.propertyModifier()?.GetText();
         var expr = context.expr();
@@ -266,6 +340,9 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
                 _ => "Auto"
             };
         }
+
+        if (isConst == "const") suffix += " Const";
+        if (isMandatory == "mandatory") suffix += " Mandatory";
         
         if (expr != null)
         {
@@ -316,8 +393,8 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
 
     public override string VisitRangeStmt(PaperScriptParser.RangeStmtContext context)
     {
-        var elementName = context.IDENTIFIER(0).GetText();
-        var arrayName = context.IDENTIFIER(1).GetText();
+        var elementName = UpdateIdentifierNamespace(context.IDENTIFIER(0));
+        var arrayName = UpdateIdentifierNamespace(context.IDENTIFIER(1));
         
         var block = Visit(context.block());
 
@@ -334,7 +411,7 @@ EndWhile");
 
     public override string VisitEventDecl(PaperScriptParser.EventDeclContext context)
     {
-        var eventName = context.IDENTIFIER().GetText();
+        var eventName = UpdateIdentifierNamespace(context.IDENTIFIER());
 
         var parameters = context.paramList()?.param();
         var paramStrings = new List<string>();
@@ -344,7 +421,7 @@ EndWhile");
             foreach (var param in parameters)
             {
                 var paramType = param.type().GetText();
-                var paramName = param.IDENTIFIER().GetText();
+                var paramName = UpdateIdentifierNamespace(param.IDENTIFIER());
                 var paramDefault = param.expr()?.GetText();
 
                 if (paramDefault != null)
@@ -367,7 +444,7 @@ EndWhile");
 
     public override string VisitConditionalBlock(PaperScriptParser.ConditionalBlockContext context)
     {
-        var condition = context.directiveStart().IDENTIFIER().GetText();
+        var condition = UpdateIdentifierNamespace(context.directiveStart().IDENTIFIER());
 
         if (Directives.TryGetValue(condition, out var directiveVal) && directiveVal == "true")
         {
@@ -444,7 +521,7 @@ EndWhile");
     public override string VisitProperty(PaperScriptParser.PropertyContext context)
     {
         var flags = context.propertyModifier()?.GetText();
-        var name = context.IDENTIFIER().GetText();
+        var name = UpdateIdentifierNamespace(context.IDENTIFIER());
         var type = context.type().GetText();
         var body = Visit(context.propertyBlock());
         
@@ -486,7 +563,7 @@ EndWhile");
     public override string VisitStateDecl(PaperScriptParser.StateDeclContext context)
     {
         var flag = context.stateFlag()?.GetText();
-        var name = context.IDENTIFIER().GetText();
+        var name = UpdateIdentifierNamespace(context.IDENTIFIER());
         var body = Visit(context.stateBlock());
 
         if (flag is not null)
@@ -530,11 +607,67 @@ EndWhile");
         
         var isIncrement = context.INCREMENT() is not null;
         
-        var name = context.IDENTIFIER()?.GetText();
+        var name = UpdateIdentifierNamespace(context.IDENTIFIER());
 
         if (isIncrement)
             return $"{name} += 1";
         else
             return $"{name} -= 1";
+    }
+
+    public override string VisitGroupDecl(PaperScriptParser.GroupDeclContext context)
+    {
+        if(_mode != Game.FO4)
+            throw new SyntaxErrorException("groups are only available in FO4");
+
+        var flags = context.groupFlag().Select(x => x.GetText()).ToArray();
+        var name = UpdateIdentifierNamespace(context.IDENTIFIER());
+        var body = Visit(context.groupBlock());
+        
+        return $"Group {name} {string.Join(" ", flags)}\n{body}\nEndGroup";
+    }
+
+    public override string VisitGroupBlock(PaperScriptParser.GroupBlockContext context)
+    {
+        var body = context.groupStatement().Select(Visit).ToArray();
+        _indentLevel++;
+        var indented = Indent(string.Join("\n", body));
+        _indentLevel--;
+        return indented;
+    }
+
+    public override string VisitStructDecl(PaperScriptParser.StructDeclContext context)
+    {
+        if(_mode != Game.FO4)
+            throw new SyntaxErrorException("structs are only available in FO4");
+        
+        var name = UpdateIdentifierNamespace(context.IDENTIFIER());
+        var body = Visit(context.structBlock());
+        
+        return $"Struct {name}\n{body}\nEndStruct";
+    }
+
+    public override string VisitStructBlock(PaperScriptParser.StructBlockContext context)
+    {
+        var body = context.variableDecl().Select(Visit).ToArray();
+        _indentLevel++;
+        var joined = Indent(string.Join("\n", body));
+        _indentLevel--;
+        return joined;
+    }
+
+    public override string VisitIsExpr(PaperScriptParser.IsExprContext context)
+    {
+        var left = Visit(context.expr(0));
+        var right = Visit(context.expr(1));
+
+        return $"{left} Is {right}";
+    }
+
+    private string UpdateIdentifierNamespace(ITerminalNode? identifier)
+    {
+        var text = identifier?.GetText();
+        if (text is null) return "";
+        return text.Replace("::", ":");
     }
 }
