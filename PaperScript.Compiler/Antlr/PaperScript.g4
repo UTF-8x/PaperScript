@@ -145,6 +145,7 @@ stmtBody
     | ifStmt
     | exprStmt
     | returnStmt
+    | voidReturnStmt
     | variableDecl
     | eventDecl
     | conditionalBlock
@@ -206,7 +207,11 @@ rangeStmt
     ;
 
 returnStmt
-    : 'return' expr 
+    : 'return' expr
+    ;
+ 
+voidReturnStmt
+    : 'return'
     ;
 
 exprStmt

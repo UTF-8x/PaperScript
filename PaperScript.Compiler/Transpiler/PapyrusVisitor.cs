@@ -1,5 +1,6 @@
 
 
+using System.Collections.ObjectModel;
 using System.Data;
 using System.Text;
 using Antlr4.Runtime.Tree;
@@ -11,12 +12,36 @@ namespace PaperScript.Compiler.Transpiler;
 public class PapyrusVisitor : PaperScriptBaseVisitor<string>
 {
     private int _indentLevel = 0;
-    
+
     public Dictionary<string, string> Directives { get; private init; } = new();
 
     private readonly List<string> _allowedGames = ["SkyrimSE", "FO4"];
 
-    private readonly Game _mode;
+    private readonly ReadOnlyCollection<string> _reservedWords = new([
+        "as", "auto", "autoreadonly", "bool", "else", "elseif", "endevent", "endfunction", "endif",
+        "endproperty", "endstate", "endwhile", "event", "extends", "false", "float", "function", "global",
+        "if", "import", "int", "length", "native", "new", "none", "parent", "property", "return", "scriptname",
+        "self", "state", "string", "true", "while", "activemagiceffect", "debug", "form", "colorcomponent", "modevent",
+        "stringutil", "alias", "game", "formtype", "netimmerse", "ui", "referencealias",
+        "math", "gamedata", "skse", "uicallback", "locationalias", "utility", "input",
+        "spawnertask", "wornobject", "action", "hazard", "potion", "activator", "headpart", "projectile",
+        "flora", "idle", "quest", "furniture", "imagespacemodifier",
+        "talkingactivator", "impactdataset", "race", "actorbase", "ingredient", 
+        "scene", "actorvalueinfo", "keyword", "ammo", "locationreftype", "armor",
+        "leveledactor", "armoraddon", "leveleditem", "scroll", "art", "leveledspell", 
+        "shout", "associationtype", "light", "sound", "book", "location",
+        "soundcategory", "cell", "magiceffect", "sounddescriptor", "class", "message",
+        "spell", "colorform", "miscobject", "static", "combatstyle", "apparatus", 
+        "textureset", "container", "constructibleobject", "topic", 
+        "defaultobjectmanager", "key", "topicinfo", "door", "soulgem", "effectshader",
+        "musictype", "treeobject", "enchantment", "objectreference", "visualeffect",
+        "encounterzone", "actor", "voicetype", "equipslot", "outfit", "weapon",
+        "explosion", "package", "weather", "faction", "package",
+        "wordofpower", "formlist", "perk", "worldspace", "globalvariable", "perk"
+    ]);
+    
+
+private readonly Game _mode;
 
     public PapyrusVisitor(string game)
     {
@@ -212,7 +237,7 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
         
         var flag = context.variableFlag()?.GetText();
         if (flag is not null && flag == "conditional") flag = "Conditional";
-        var name = UpdateIdentifierNamespace(context.IDENTIFIER());
+        var name = CheckNames(UpdateIdentifierNamespace(context.IDENTIFIER()));
         var type = context.type().GetText();
         var expr = context.expr() != null ? $" = {Visit(context.expr())}" : "";
 
@@ -234,7 +259,7 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
         
         var flag = context.variableFlag()?.GetText();
         if (flag is not null && flag == "conditional") flag = "Conditional";
-        var name = UpdateIdentifierNamespace(context.IDENTIFIER());
+        var name = CheckNames(UpdateIdentifierNamespace(context.IDENTIFIER()));
         var expr = context.expr() != null ? $" = {Visit(context.expr())}" : "";
 
         return $"Var {name}{expr} {isConst}{flag}";
@@ -323,7 +348,7 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
         if(isMandatory is not null && isMandatory == "mandatory" && _mode != Game.FO4)
             throw new SyntaxErrorException("mandatory properties are only supported in FO4");
 
-        var name = UpdateIdentifierNamespace(context.IDENTIFIER());
+        var name = CheckNames(UpdateIdentifierNamespace(context.IDENTIFIER()));
         var type = context.type().GetText();
         var modifier = context.propertyModifier()?.GetText();
         var expr = context.expr();
@@ -393,7 +418,7 @@ public class PapyrusVisitor : PaperScriptBaseVisitor<string>
 
     public override string VisitRangeStmt(PaperScriptParser.RangeStmtContext context)
     {
-        var elementName = UpdateIdentifierNamespace(context.IDENTIFIER(0));
+        var elementName = CheckNames(UpdateIdentifierNamespace(context.IDENTIFIER(0)));
         var arrayName = UpdateIdentifierNamespace(context.IDENTIFIER(1));
         
         var block = Visit(context.block());
@@ -421,7 +446,7 @@ EndWhile");
             foreach (var param in parameters)
             {
                 var paramType = param.type().GetText();
-                var paramName = UpdateIdentifierNamespace(param.IDENTIFIER());
+                var paramName = CheckNames(UpdateIdentifierNamespace(param.IDENTIFIER()));
                 var paramDefault = param.expr()?.GetText();
 
                 if (paramDefault != null)
@@ -521,7 +546,7 @@ EndWhile");
     public override string VisitProperty(PaperScriptParser.PropertyContext context)
     {
         var flags = context.propertyModifier()?.GetText();
-        var name = UpdateIdentifierNamespace(context.IDENTIFIER());
+        var name = CheckNames(UpdateIdentifierNamespace(context.IDENTIFIER()));
         var type = context.type().GetText();
         var body = Visit(context.propertyBlock());
         
@@ -563,7 +588,7 @@ EndWhile");
     public override string VisitStateDecl(PaperScriptParser.StateDeclContext context)
     {
         var flag = context.stateFlag()?.GetText();
-        var name = UpdateIdentifierNamespace(context.IDENTIFIER());
+        var name = CheckNames(UpdateIdentifierNamespace(context.IDENTIFIER()));
         var body = Visit(context.stateBlock());
 
         if (flag is not null)
@@ -621,7 +646,7 @@ EndWhile");
             throw new SyntaxErrorException("groups are only available in FO4");
 
         var flags = context.groupFlag().Select(x => x.GetText()).ToArray();
-        var name = UpdateIdentifierNamespace(context.IDENTIFIER());
+        var name = CheckNames(UpdateIdentifierNamespace(context.IDENTIFIER()));
         var body = Visit(context.groupBlock());
         
         return $"Group {name} {string.Join(" ", flags)}\n{body}\nEndGroup";
@@ -641,7 +666,7 @@ EndWhile");
         if(_mode != Game.FO4)
             throw new SyntaxErrorException("structs are only available in FO4");
         
-        var name = UpdateIdentifierNamespace(context.IDENTIFIER());
+        var name = CheckNames(UpdateIdentifierNamespace(context.IDENTIFIER()));
         var body = Visit(context.structBlock());
         
         return $"Struct {name}\n{body}\nEndStruct";
@@ -740,5 +765,18 @@ EndWhile");
         }
         
         throw new SyntaxErrorException("could not parse struct initializer");
+    }
+
+    public override string VisitVoidReturnStmt(PaperScriptParser.VoidReturnStmtContext context)
+    {
+        return "Return\n";
+    }
+
+    private string CheckNames(string name)
+    {
+        if (_reservedWords.Contains(name.ToLowerInvariant()))
+            throw new SyntaxErrorException(
+                $"{name} is a reserved Papyrus keyword or Script Object name and cannot be used as a variable name");
+        return name;
     }
 }

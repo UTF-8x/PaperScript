@@ -64,8 +64,8 @@ public class BuildCommand : Command<BuildCommand.BuildCommandSettings>
             return 1;
         }
 
-        var files = Glob.Files(Directory.GetCurrentDirectory(), manifest.SourceGlob);
-        if (files is null)
+        var files = Glob.Files(Directory.GetCurrentDirectory(), manifest.SourceGlob).ToArray();
+        if (files.Length < 1)
         {
             Log.Warning("no source files found, nothing to do");
             return 1;
@@ -74,19 +74,28 @@ public class BuildCommand : Command<BuildCommand.BuildCommandSettings>
         Log.Information("building project {Name} v{version}", manifest.ProjectName, manifest.ProjectVersion);
         var tp = new PapyrusTranspiler();
 
+        // Build the PSC
+
         foreach (var file in files)
         {
-            
-            Log.Debug("transpiling {In}", file);
+            Log.Information("transpiling {In}", file);
+
             var code = File.ReadAllText(file);
             var result = tp.Transpile(code, manifest.Game);
             var outputPath = Path.Combine(manifest.ScriptFolderPath, Path.ChangeExtension(Path.GetFileName(file), ".psc"));
             File.WriteAllText(outputPath, result.Code);
             Log.Debug("transpiled file {In} -> {Out}", file, outputPath);
+        }
+        
+        // Then compile to PEX
+        
+        foreach (var file in files)
+        {
+            var outputPath = Path.Combine(manifest.ScriptFolderPath, Path.ChangeExtension(Path.GetFileName(file), ".psc"));
 
             if (!settings.DoNotCompile)
             {
-                Log.Debug("compiling papyrus script {In}", outputPath);
+                Log.Information("compiling papyrus script {In}", outputPath);
             
                 var compiler = new Process
                 { 
