@@ -214,8 +214,11 @@ exprStmt
     ;
 
 expr
-    : expr 'as' type                            # castExpr
+    : '[' literal (',' literal)* ']'            # arrayInit
+    | '{' structInitAssignment (',' structInitAssignment)* '}' # structInit
+    | expr 'as' type                            # castExpr
     | expr 'is' expr                            # isExpr
+    | 'new' type                                # newStruct
     | 'new' type '[' expr ']'                   # newArrayExpr
     | expr '[' expr ']'                         # indexExpr
     | expr '=' expr                             # assignmentExpr
@@ -227,6 +230,10 @@ expr
     | literalExpr                               # Lit
     | '(' expr ')'                              # parenExpr
     | '!' expr                                  # unaryNotExpr
+    ;
+ 
+structInitAssignment
+    : IDENTIFIER ':' literal
     ;
 
 literalExpr

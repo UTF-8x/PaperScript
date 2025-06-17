@@ -670,4 +670,75 @@ EndWhile");
         if (text is null) return "";
         return text.Replace("::", ":");
     }
+
+    public override string VisitArrayInit(PaperScriptParser.ArrayInitContext context)
+    {
+        var parent = context.Parent;
+        var @out = "";
+        
+        if (parent is PaperScriptParser.VariableDeclContext vd)
+        {
+            var type = vd.type()?.GetText() ?? throw new SyntaxErrorException("could not determine array type");
+            var parentName = vd.IDENTIFIER()?.GetText() ?? throw new SyntaxErrorException("could not determine array variable name");
+
+            var size = context.literal().Length;
+            @out += $"new {type.Replace("[", "").Replace("]", "")}[{size}]\n";
+
+            var cntr = 0;
+            foreach (var lit in context.literal())
+            {
+                var str = lit.GetText();
+                @out += $"{parentName}[{cntr++}] = {str}\n";
+            }
+
+            @out += "\n";
+            
+            return @out;
+        }
+        throw new SyntaxErrorException("could not parse array init");
+    }
+
+    public override string VisitNewStruct(PaperScriptParser.NewStructContext context)
+    {
+        if (_mode != Game.FO4) throw new SyntaxErrorException("structs are only supported in FO4");
+        
+        var name = context.type().GetText();
+        return $"new {name}\n";
+    }
+
+    public override string VisitStructInit(PaperScriptParser.StructInitContext context)
+    {
+        if (_mode != Game.FO4) throw new SyntaxErrorException("structs are only supported in FO4");
+
+        var @out = "";
+        
+        var parent = context.Parent;
+        if (parent is PaperScriptParser.VariableDeclContext vd)
+        {
+            var type = vd.type().GetText() ?? throw new SyntaxErrorException("could not determine struct type");
+            @out += $"new {type}\n";
+
+            return context.structInitAssignment().Aggregate(@out, (current, assign) => current + Visit(assign));
+        }
+
+        throw new SyntaxErrorException("could not parse struct initializer");
+    }
+
+    public override string VisitStructInitAssignment(PaperScriptParser.StructInitAssignmentContext context)
+    {
+        if (_mode != Game.FO4) throw new SyntaxErrorException("structs are only supported in FO4");
+
+        var parentParent = context.Parent.Parent;
+
+        if (parentParent is PaperScriptParser.VariableDeclContext vd)
+        {
+            var varName = vd.IDENTIFIER()?.GetText() ?? throw new SyntaxErrorException("could not determine struct name");
+            var memberName = context.IDENTIFIER().GetText() ??
+                             throw new SyntaxErrorException("could not determine struct member name");
+            var val = context.literal().GetText() ?? throw new SyntaxErrorException("could not determine struct member value");
+            return $"{varName}.{memberName} = {val}\n";
+        }
+        
+        throw new SyntaxErrorException("could not parse struct initializer");
+    }
 }
